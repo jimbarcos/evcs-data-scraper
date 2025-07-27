@@ -306,6 +306,20 @@ class EVCSScraperSimple:
             timestamp = now.strftime("%B %d, %Y at %H:%M UTC")
             
             if success:
+                # Get GitHub repository info for artifact URL
+                github_repo = os.getenv('GITHUB_REPOSITORY', 'your-repo')
+                github_run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
+                artifact_url = f"https://github.com/{github_repo}/actions/runs/{github_run_id}"
+                
+                # Calculate total file size for email content
+                total_size = 0
+                file_info = []
+                for file_path in self.output_files:
+                    if os.path.exists(file_path):
+                        size = os.path.getsize(file_path)
+                        total_size += size
+                        file_info.append(f"• {os.path.basename(file_path)} ({size:,} bytes)")
+                
                 subject = f"✅ EVCS Scraper Success - {stations_count} stations processed"
                 html_content = f"""
                 <html><body>
@@ -315,14 +329,27 @@ class EVCSScraperSimple:
                 <ul>
                     <li>Stations processed: {stations_count}</li>
                     <li>Output files generated: {len(self.output_files)}</li>
+                    <li>Total data size: {total_size:,} bytes</li>
                 </ul>
                 <p><strong>Generated Files:</strong></p>
                 <ul>
-                    {''.join([f"<li>{file}</li>" for file in self.output_files])}
+                    {''.join([f"<li>{info}</li>" for info in file_info])}
                 </ul>
-                <p>All output files are attached to this email.</p>
+                
+                <h3>📥 Download Files:</h3>
+                <p>To download the generated files, visit the GitHub Actions run page:</p>
+                <p><a href="{artifact_url}" style="background-color: #0366d6; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">📦 Download Artifacts</a></p>
+                <p><small>URL: {artifact_url}</small></p>
+                
+                <h3>💡 Download Instructions:</h3>
+                <ol>
+                    <li>Click the "Download Artifacts" button above</li>
+                    <li>Look for the "evcs-data" artifact in the GitHub Actions page</li>
+                    <li>Download the ZIP file containing all generated files</li>
+                </ol>
+                
                 <hr>
-                <p><em>This is an automated message from the EVCS Data Scraper (Simple Version).</em></p>
+                <p><em>This is an automated message from the EVCS Data Scraper (Simple Version). Files are available as GitHub Actions artifacts to avoid email attachment limitations.</em></p>
                 </body></html>
                 """
             else:
@@ -342,26 +369,20 @@ class EVCSScraperSimple:
             print(f"📧 Recipient: {self.notification_email}")
             print(f"📧 Sender: jimbarcos01@gmail.com")
             
-            # Prepare attachments
-            attachments = []
-            for file_path in self.output_files:
-                if os.path.exists(file_path):
-                    with open(file_path, 'rb') as f:
-                        content = f.read()
-                    attachments.append({
-                        "content": content,
-                        "name": os.path.basename(file_path)
-                    })
-                    print(f"📎 Attached file: {os.path.basename(file_path)} ({len(content)} bytes)")
+            # Get GitHub repository info for artifact URL
+            github_repo = os.getenv('GITHUB_REPOSITORY', 'your-repo')
+            github_run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
             
-            print(f"📎 Total attachments: {len(attachments)}")
+            print(f"🔗 GitHub repository: {github_repo}")
+            print(f"🔗 GitHub run ID: {github_run_id}")
+            print("📎 No attachments (using artifact URL instead to avoid email restrictions)")
             
+            # Send email (no attachments)
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=[{"email": self.notification_email}],
                 subject=subject,
                 html_content=html_content,
-                sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"},
-                attachment=attachments if attachments else None
+                sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"}
             )
             
             print("📤 Sending email via Brevo API...")

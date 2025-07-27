@@ -464,29 +464,96 @@ class EVCSScraper:
             print(f"📧 Recipient: {self.notification_email}")
             print(f"📧 Sender: jimbarcos01@gmail.com")
             
-            # Prepare attachments
-            attachments = []
+            # Get GitHub repository info for artifact URL
+            github_repo = os.getenv('GITHUB_REPOSITORY', 'your-repo')
+            github_run_id = os.getenv('GITHUB_RUN_ID', 'unknown')
+            artifact_url = f"https://github.com/{github_repo}/actions/runs/{github_run_id}"
+            
+            print(f"🔗 GitHub repository: {github_repo}")
+            print(f"🔗 GitHub run ID: {github_run_id}")
+            print(f"🔗 Artifact URL: {artifact_url}")
+            
+            # Calculate total file size for email content
+            total_size = 0
+            file_info = []
             for file_path in self.output_files:
                 if os.path.exists(file_path):
-                    with open(file_path, 'rb') as f:
-                        content = f.read()
+                    size = os.path.getsize(file_path)
+                    total_size += size
+                    file_info.append(f"• {os.path.basename(file_path)} ({size:,} bytes)")
+            
+            print(f"📊 Total files: {len(file_info)}")
+            print(f"📊 Total size: {total_size:,} bytes")
+            print("📎 No attachments (using artifact URL instead to avoid email restrictions)")
+            
+            # Update HTML content to include download instructions
+            if success:
+                html_content = f"""
+                <html>
+                <body>
+                    <h2>🚗⚡ EVCS Data Scraping Completed Successfully</h2>
+                    <p><strong>Execution Time:</strong> {timestamp}</p>
+                    <p><strong>Results:</strong></p>
+                    <ul>
+                        <li>Stations processed: {stations_count}</li>
+                        <li>Charging points processed: {chargepoints_count}</li>
+                        <li>Output files generated: {len(self.output_files)}</li>
+                        <li>Total data size: {total_size:,} bytes</li>
+                    </ul>
+                    <p><strong>Generated Files:</strong></p>
+                    <ul>
+                        {''.join([f"<li>{info}</li>" for info in file_info])}
+                    </ul>
                     
-                    attachment = {
-                        "content": content,
-                        "name": os.path.basename(file_path)
-                    }
-                    attachments.append(attachment)
-                    print(f"📎 Attached file: {os.path.basename(file_path)} ({len(content)} bytes)")
+                    <h3>📥 Download Files:</h3>
+                    <p>To download the generated files, visit the GitHub Actions run page:</p>
+                    <p><a href="{artifact_url}" style="background-color: #0366d6; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">📦 Download Artifacts</a></p>
+                    <p><small>URL: {artifact_url}</small></p>
+                    
+                    <h3>💡 Download Instructions:</h3>
+                    <ol>
+                        <li>Click the "Download Artifacts" button above</li>
+                        <li>Look for the "evcs-data" artifact in the GitHub Actions page</li>
+                        <li>Download the ZIP file containing all generated files</li>
+                    </ol>
+                    
+                    {"<p><strong>Warnings:</strong></p><ul>" + ''.join([f"<li>{error}</li>" for error in self.error_log]) + "</ul>" if self.error_log else ""}
+                    <hr>
+                    <p><em>This is an automated message from the EVCS Data Scraper. Files are available as GitHub Actions artifacts to avoid email attachment limitations.</em></p>
+                </body>
+                </html>
+                """
+            else:
+                html_content = f"""
+                <html>
+                <body>
+                    <h2>🚨 EVCS Data Scraping Failed</h2>
+                    <p><strong>Execution Time:</strong> {timestamp}</p>
+                    <p><strong>Error Details:</strong></p>
+                    <pre>{error_details}</pre>
+                    {"<p><strong>Additional Errors:</strong></p><ul>" + ''.join([f"<li>{error}</li>" for error in self.error_log]) + "</ul>" if self.error_log else ""}
+                    
+                    {f'''
+                    <p><strong>Partial Files Generated:</strong></p>
+                    <ul>{''.join([f"<li>{info}</li>" for info in file_info])}</ul>
+                    
+                    <h3>� Download Partial Files:</h3>
+                    <p>Some files may have been generated before the failure. Visit the GitHub Actions run page:</p>
+                    <p><a href="{artifact_url}" style="background-color: #0366d6; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0;">📦 Check for Artifacts</a></p>
+                    ''' if self.output_files else "<p>No files were generated.</p>"}
+                    
+                    <hr>
+                    <p><em>This is an automated message from the EVCS Data Scraper.</em></p>
+                </body>
+                </html>
+                """
             
-            print(f"📎 Total attachments: {len(attachments)}")
-            
-            # Send email
+            # Send email (no attachments)
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=[{"email": self.notification_email}],
                 subject=subject,
                 html_content=html_content,
-                sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"},
-                attachment=attachments if attachments else None
+                sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"}
             )
             
             print("📤 Sending email via Brevo API...")
