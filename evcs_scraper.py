@@ -391,7 +391,16 @@ class EVCSScraper:
         
         print(f"📧 Email API Key present: {'Yes' if self.email_api_key else 'No'}")
         print(f"📧 Email API Key (first 20 chars): {self.email_api_key[:20] if self.email_api_key else 'None'}...")
-        print(f"📧 Notification email: {self.notification_email}")
+        
+        # Parse multiple email addresses
+        email_list = []
+        if self.notification_email:
+            # Support multiple formats: comma, semicolon, space, or newline separated
+            emails_raw = self.notification_email.replace('\n', ',').replace(';', ',').replace(' ', ',')
+            email_list = [email.strip() for email in emails_raw.split(',') if email.strip()]
+        
+        print(f"📧 Notification emails: {email_list}")
+        print(f"📧 Total recipients: {len(email_list)}")
         print(f"📧 SendinBlue available: {SENDINBLUE_AVAILABLE}")
         print(f"📧 Success status: {success}")
         print(f"📧 Stations count: {stations_count}")
@@ -401,6 +410,10 @@ class EVCSScraper:
         
         if not self.email_api_key:
             print("❌ Email notification skipped - No API key found")
+            return
+            
+        if not email_list:
+            print("❌ Email notification skipped - No valid email addresses found")
             return
             
         if not SENDINBLUE_AVAILABLE:
@@ -552,19 +565,21 @@ class EVCSScraper:
                 </html>
                 """
             
-            # Send email (no attachments)
+            # Send email (no attachments) - support multiple recipients
+            recipients = [{"email": email} for email in email_list]
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-                to=[{"email": self.notification_email}],
+                to=recipients,
                 subject=subject,
                 html_content=html_content,
                 sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"}
             )
             
             print("📤 Sending email via Brevo API...")
+            print(f"📧 Recipients: {[email for email in email_list]}")
             api_response = api_instance.send_transac_email(send_smtp_email)
             print(f"✅ Email notification sent successfully!")
             print(f"📨 Message ID: {api_response.message_id}")
-            print(f"📬 Check your inbox at: {self.notification_email}")
+            print(f"📬 Check inboxes at: {', '.join(email_list)}")
             
         except ApiException as e:
             error_msg = f"SendinBlue API error: {e}"
