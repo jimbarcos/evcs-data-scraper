@@ -41,6 +41,8 @@ except ImportError:
 from seleniumwire import webdriver
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 
 # Load environment variables
@@ -55,43 +57,91 @@ class EVCSScraper:
         self.error_log = []
         
     def setup_driver(self):
-        """Setup and configure the Edge WebDriver"""
-        print("Setting up Edge WebDriver...")
+        """Setup and configure the Edge WebDriver with Chrome fallback"""
+        print("Setting up WebDriver...")
         
-        edge_options = EdgeOptions()
-        edge_options.add_argument("--headless")
-        edge_options.add_argument("--disable-gpu")
-        edge_options.add_argument("--window-size=1920,1080")
-        edge_options.add_argument("--no-sandbox")
-        edge_options.add_argument("--disable-dev-shm-usage")
-        edge_options.add_argument("--disable-extensions")
-        edge_options.add_argument("--disable-web-security")
-        edge_options.add_argument("--allow-running-insecure-content")
-        
-        # Try to find EdgeDriver in different locations
-        driver_paths = [
-            "/usr/local/bin/msedgedriver",  # GitHub Actions
-            "./Driver_Notes/msedgedriver.exe",  # Local Windows
-            "./Driver_Notes/msedgedriver",  # Local Linux
-            "msedgedriver"  # System PATH
+        # Common options for both Edge and Chrome
+        common_options = [
+            "--headless",
+            "--disable-gpu", 
+            "--window-size=1920,1080",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-extensions",
+            "--disable-web-security",
+            "--allow-running-insecure-content",
+            "--disable-blink-features=AutomationControlled",
+            "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         ]
         
-        driver_path = None
-        for path in driver_paths:
-            if os.path.exists(path):
-                driver_path = path
-                break
-        
+        # Try Edge first
         try:
-            if driver_path:
+            print("Attempting to use Microsoft Edge...")
+            edge_options = EdgeOptions()
+            for option in common_options:
+                edge_options.add_argument(option)
+            
+            # Try to find EdgeDriver in different locations
+            driver_paths = [
+                "/usr/local/bin/msedgedriver",  # GitHub Actions
+                "/usr/bin/chromedriver",  # Chrome fallback on GitHub Actions
+                "./Driver_Notes/msedgedriver.exe",  # Local Windows
+                "./Driver_Notes/msedgedriver",  # Local Linux
+                "msedgedriver"  # System PATH
+            ]
+            
+            driver_path = None
+            for path in driver_paths:
+                if os.path.exists(path):
+                    driver_path = path
+                    print(f"Found driver at: {path}")
+                    break
+            
+            if driver_path and "chromedriver" not in driver_path:
                 edge_service = EdgeService(executable_path=driver_path)
                 self.driver = webdriver.Edge(service=edge_service, options=edge_options)
+                print("✓ Microsoft Edge WebDriver initialized successfully")
+                return
             else:
-                # Let selenium-wire find the driver automatically
+                # Let selenium find Edge automatically
                 self.driver = webdriver.Edge(options=edge_options)
-            print("✓ Edge WebDriver initialized successfully")
+                print("✓ Microsoft Edge WebDriver initialized automatically")
+                return
+                
         except Exception as e:
-            error_msg = f"Failed to initialize Edge WebDriver: {str(e)}"
+            print(f"⚠ Edge WebDriver failed: {str(e)}")
+            print("Trying Chrome as fallback...")
+        
+        # Fallback to Chrome
+        try:
+            chrome_options = ChromeOptions()
+            for option in common_options:
+                chrome_options.add_argument(option)
+            
+            # Try Chrome with different drivers
+            chrome_paths = [
+                "/usr/bin/chromedriver",  # GitHub Actions
+                "/usr/local/bin/chromedriver",
+                "chromedriver"  # System PATH
+            ]
+            
+            chrome_driver_path = None
+            for path in chrome_paths:
+                if os.path.exists(path):
+                    chrome_driver_path = path
+                    break
+            
+            if chrome_driver_path:
+                chrome_service = ChromeService(executable_path=chrome_driver_path)
+                self.driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+            else:
+                self.driver = webdriver.Chrome(options=chrome_options)
+            
+            print("✓ Chrome WebDriver initialized successfully (fallback)")
+            return
+            
+        except Exception as e:
+            error_msg = f"Both Edge and Chrome WebDriver failed: {str(e)}"
             print(f"✗ {error_msg}")
             self.error_log.append(error_msg)
             raise
