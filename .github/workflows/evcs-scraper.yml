@@ -87,7 +87,15 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install selenium-wire selenium pandas openpyxl brotli sib-api-v3-sdk python-dotenv
+        # Install compatible versions to avoid blinker._saferef issue
+        pip install blinker==1.6.3
+        pip install selenium-wire==5.1.0
+        pip install selenium==4.15.2
+        pip install pandas==2.1.3
+        pip install openpyxl==3.1.2
+        pip install brotli==1.1.0
+        pip install sib-api-v3-sdk==7.6.0
+        pip install python-dotenv==1.0.0
         
     - name: Create .env file from secrets
       run: |
