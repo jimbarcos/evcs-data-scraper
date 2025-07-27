@@ -50,7 +50,7 @@ class EVCSScraper:
     def __init__(self):
         self.driver = None
         self.email_api_key = os.getenv('EMAIL_API_KEY')
-        self.notification_email = os.getenv('NOTIFICATION_EMAIL', 'jim.barcos@example.com')  # Default email
+        self.notification_email = os.getenv('NOTIFICATION_EMAIL', 'jimbarcos01@gmail.com')  # Default email
         self.output_files = []
         self.error_log = []
         
@@ -408,7 +408,7 @@ class EVCSScraper:
                 to=[{"email": self.notification_email}],
                 subject=subject,
                 html_content=html_content,
-                sender={"name": "EVCS Scraper", "email": "noreply@evcsscraper.com"},
+                sender={"name": "EVCS Scraper", "email": "jimbarcos01@gmail.com"},
                 attachment=attachments if attachments else None
             )
             

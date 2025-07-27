@@ -80,7 +80,7 @@ def test_email_notification():
             to=[{"email": notification_email}],
             subject=subject,
             html_content=html_content,
-            sender={"name": "EVCS Scraper Test", "email": "jimbarcos01@gmail.com"},
+            sender={"name": "EVCS Scraper", "email": "no-reply@evcs-scraper.automation.com"},
             attachment=attachment
         )
         
