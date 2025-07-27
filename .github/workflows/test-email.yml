@@ -1,0 +1,35 @@
+name: Test Email Notifications
+
+on:
+  workflow_dispatch: # Manual trigger only
+    inputs:
+      test_email:
+        description: 'Email address to send test to'
+        required: true
+        type: string
+
+jobs:
+  test-email:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sib-api-v3-sdk python-dotenv
+        
+    - name: Create .env file from secrets
+      run: |
+        echo "EMAIL_API_KEY=${{ secrets.EMAIL_API_KEY }}" > .env
+        echo "NOTIFICATION_EMAIL=${{ github.event.inputs.test_email }}" >> .env
+        
+    - name: Test email functionality
+      run: python test_email.py
