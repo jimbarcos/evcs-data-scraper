@@ -102,6 +102,10 @@ jobs:
         echo "EMAIL_API_KEY=${{ secrets.EMAIL_API_KEY }}" > .env
         echo "NOTIFICATION_EMAIL=${{ secrets.NOTIFICATION_EMAIL }}" >> .env
         
+    - name: Test environment variables
+      run: |
+        python test_environment.py
+        
     - name: Run EVCS scraper
       run: |
         export DISPLAY=:99

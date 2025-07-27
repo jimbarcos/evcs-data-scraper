@@ -383,17 +383,37 @@ class EVCSScraper:
     
     def send_email_notification(self, success=True, stations_count=0, chargepoints_count=0, error_details=None):
         """Send email notification with results"""
-        if not self.email_api_key or not SENDINBLUE_AVAILABLE:
-            print("⚠ Email notification skipped - API key not configured or SendinBlue not available")
+        print("=" * 50)
+        print("🔍 DEBUGGING EMAIL NOTIFICATION (MAIN SCRAPER)")
+        print("=" * 50)
+        
+        print(f"📧 Email API Key present: {'Yes' if self.email_api_key else 'No'}")
+        print(f"📧 Email API Key (first 20 chars): {self.email_api_key[:20] if self.email_api_key else 'None'}...")
+        print(f"📧 Notification email: {self.notification_email}")
+        print(f"📧 SendinBlue available: {SENDINBLUE_AVAILABLE}")
+        print(f"📧 Success status: {success}")
+        print(f"📧 Stations count: {stations_count}")
+        print(f"📧 Chargepoints count: {chargepoints_count}")
+        print(f"📧 Output files: {len(self.output_files)}")
+        print(f"📧 Error log entries: {len(self.error_log)}")
+        
+        if not self.email_api_key:
+            print("❌ Email notification skipped - No API key found")
+            return
+            
+        if not SENDINBLUE_AVAILABLE:
+            print("❌ Email notification skipped - sib-api-v3-sdk not available")
             return
         
-        print("Sending email notification...")
+        print("✅ All prerequisites met, attempting to send email...")
         
         try:
             # Configure SendinBlue API
             configuration = sib_api_v3_sdk.Configuration()
             configuration.api_key['api-key'] = self.email_api_key
             api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+            
+            print("✅ Brevo API client configured successfully")
             
             # Prepare email content
             now = datetime.now()
@@ -440,6 +460,10 @@ class EVCSScraper:
                 </html>
                 """
             
+            print(f"📧 Email subject: {subject}")
+            print(f"📧 Recipient: {self.notification_email}")
+            print(f"📧 Sender: jimbarcos01@gmail.com")
+            
             # Prepare attachments
             attachments = []
             for file_path in self.output_files:
@@ -452,6 +476,9 @@ class EVCSScraper:
                         "name": os.path.basename(file_path)
                     }
                     attachments.append(attachment)
+                    print(f"📎 Attached file: {os.path.basename(file_path)} ({len(content)} bytes)")
+            
+            print(f"📎 Total attachments: {len(attachments)}")
             
             # Send email
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
@@ -462,17 +489,28 @@ class EVCSScraper:
                 attachment=attachments if attachments else None
             )
             
+            print("📤 Sending email via Brevo API...")
             api_response = api_instance.send_transac_email(send_smtp_email)
-            print(f"✓ Email notification sent successfully (Message ID: {api_response.message_id})")
+            print(f"✅ Email notification sent successfully!")
+            print(f"📨 Message ID: {api_response.message_id}")
+            print(f"📬 Check your inbox at: {self.notification_email}")
             
         except ApiException as e:
             error_msg = f"SendinBlue API error: {e}"
-            print(f"✗ {error_msg}")
+            print(f"❌ {error_msg}")
+            print(f"📊 API Error Details: {e.body if hasattr(e, 'body') else 'No details'}")
             self.error_log.append(error_msg)
         except Exception as e:
             error_msg = f"Email notification error: {e}"
-            print(f"✗ {error_msg}")
+            print(f"❌ {error_msg}")
+            print(f"📊 Error type: {type(e).__name__}")
+            import traceback
+            print(f"📊 Full traceback:\n{traceback.format_exc()}")
             self.error_log.append(error_msg)
+        
+        print("=" * 50)
+        print("🔍 EMAIL NOTIFICATION DEBUG END")
+        print("=" * 50)
     
     def cleanup(self):
         """Clean up resources"""

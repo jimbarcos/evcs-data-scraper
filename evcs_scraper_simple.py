@@ -273,16 +273,34 @@ class EVCSScraperSimple:
     
     def send_email_notification(self, success=True, stations_count=0, chargepoints_count=0, error_details=None):
         """Send email notification"""
-        if not self.email_api_key or not SENDINBLUE_AVAILABLE:
-            print("⚠ Email notification skipped - API key not configured")
+        print("=" * 50)
+        print("🔍 DEBUGGING EMAIL NOTIFICATION")
+        print("=" * 50)
+        
+        print(f"📧 Email API Key present: {'Yes' if self.email_api_key else 'No'}")
+        print(f"📧 Email API Key (first 20 chars): {self.email_api_key[:20] if self.email_api_key else 'None'}...")
+        print(f"📧 Notification email: {self.notification_email}")
+        print(f"📧 SendinBlue available: {SENDINBLUE_AVAILABLE}")
+        print(f"📧 Success status: {success}")
+        print(f"📧 Stations count: {stations_count}")
+        print(f"📧 Output files: {len(self.output_files)}")
+        
+        if not self.email_api_key:
+            print("❌ Email notification skipped - No API key found")
+            return
+            
+        if not SENDINBLUE_AVAILABLE:
+            print("❌ Email notification skipped - sib-api-v3-sdk not available")
             return
         
-        print("Sending email notification...")
+        print("✅ All prerequisites met, attempting to send email...")
         
         try:
             configuration = sib_api_v3_sdk.Configuration()
             configuration.api_key['api-key'] = self.email_api_key
             api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+            
+            print("✅ Brevo API client configured successfully")
             
             now = datetime.now()
             timestamp = now.strftime("%B %d, %Y at %H:%M UTC")
@@ -291,11 +309,20 @@ class EVCSScraperSimple:
                 subject = f"✅ EVCS Scraper Success - {stations_count} stations processed"
                 html_content = f"""
                 <html><body>
-                <h2>🚗⚡ EVCS Data Scraping Completed</h2>
+                <h2>🚗⚡ EVCS Data Scraping Completed Successfully</h2>
                 <p><strong>Execution Time:</strong> {timestamp}</p>
-                <p><strong>Results:</strong> {stations_count} stations processed</p>
-                <p><strong>Files:</strong> {len(self.output_files)} generated</p>
-                <p>Files are attached to this email.</p>
+                <p><strong>Results:</strong></p>
+                <ul>
+                    <li>Stations processed: {stations_count}</li>
+                    <li>Output files generated: {len(self.output_files)}</li>
+                </ul>
+                <p><strong>Generated Files:</strong></p>
+                <ul>
+                    {''.join([f"<li>{file}</li>" for file in self.output_files])}
+                </ul>
+                <p>All output files are attached to this email.</p>
+                <hr>
+                <p><em>This is an automated message from the EVCS Data Scraper (Simple Version).</em></p>
                 </body></html>
                 """
             else:
@@ -303,10 +330,17 @@ class EVCSScraperSimple:
                 html_content = f"""
                 <html><body>
                 <h2>🚨 EVCS Data Scraping Failed</h2>
-                <p><strong>Error:</strong> {error_details}</p>
-                <p><strong>Time:</strong> {timestamp}</p>
+                <p><strong>Execution Time:</strong> {timestamp}</p>
+                <p><strong>Error Details:</strong></p>
+                <pre>{error_details}</pre>
+                <hr>
+                <p><em>This is an automated message from the EVCS Data Scraper (Simple Version).</em></p>
                 </body></html>
                 """
+            
+            print(f"📧 Email subject: {subject}")
+            print(f"📧 Recipient: {self.notification_email}")
+            print(f"📧 Sender: jimbarcos01@gmail.com")
             
             # Prepare attachments
             attachments = []
@@ -318,6 +352,9 @@ class EVCSScraperSimple:
                         "content": content,
                         "name": os.path.basename(file_path)
                     })
+                    print(f"📎 Attached file: {os.path.basename(file_path)} ({len(content)} bytes)")
+            
+            print(f"📎 Total attachments: {len(attachments)}")
             
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=[{"email": self.notification_email}],
@@ -327,11 +364,24 @@ class EVCSScraperSimple:
                 attachment=attachments if attachments else None
             )
             
+            print("📤 Sending email via Brevo API...")
             api_response = api_instance.send_transac_email(send_smtp_email)
-            print(f"✓ Email sent successfully (ID: {api_response.message_id})")
+            print(f"✅ Email sent successfully!")
+            print(f"📨 Message ID: {api_response.message_id}")
+            print(f"📬 Check your inbox at: {self.notification_email}")
             
+        except ApiException as e:
+            print(f"❌ Brevo API Error: {e}")
+            print(f"📊 API Error Details: {e.body if hasattr(e, 'body') else 'No details'}")
         except Exception as e:
-            print(f"✗ Email failed: {e}")
+            print(f"❌ Email sending failed: {e}")
+            print(f"📊 Error type: {type(e).__name__}")
+            import traceback
+            print(f"📊 Full traceback:\n{traceback.format_exc()}")
+        
+        print("=" * 50)
+        print("🔍 EMAIL NOTIFICATION DEBUG END")
+        print("=" * 50)
     
     def cleanup(self):
         """Clean up resources"""
