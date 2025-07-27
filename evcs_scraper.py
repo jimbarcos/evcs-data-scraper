@@ -19,7 +19,7 @@ import copy
 import smtplib
 import traceback
 from urllib.parse import unquote
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -255,8 +255,10 @@ class EVCSScraper:
     
     def save_json_data(self, stations_data):
         """Save station data to JSON file"""
-        now = datetime.now()
-        dt_str = now.strftime("%B_%d_%Y_%H_%M")
+        # Use Philippine Standard Time (UTC+8)
+        pst = timezone(timedelta(hours=8))
+        now = datetime.now(pst)
+        dt_str = now.strftime("%B_%d_%Y_%H_%M_PST")
         json_filename = f"evcs_data_{dt_str}.json"
         
         with open(json_filename, "w", encoding="utf-8") as f:
@@ -416,8 +418,10 @@ class EVCSScraper:
             print("✅ Brevo API client configured successfully")
             
             # Prepare email content
-            now = datetime.now()
-            timestamp = now.strftime("%B %d, %Y at %H:%M UTC")
+            # Use Philippine Standard Time (UTC+8)
+            pst = timezone(timedelta(hours=8))
+            now = datetime.now(pst)
+            timestamp = now.strftime("%B %d, %Y at %H:%M PST")
             
             if success:
                 subject = f"✅ EVCS Scraper Success - {stations_count} stations processed"
@@ -593,7 +597,9 @@ class EVCSScraper:
         
         try:
             print("🚗⚡ Starting EVCS Data Scraper...")
-            print(f"Timestamp: {datetime.now().strftime('%B %d, %Y at %H:%M:%S UTC')}")
+            # Use Philippine Standard Time (UTC+8)
+            pst = timezone(timedelta(hours=8))
+            print(f"Timestamp: {datetime.now(pst).strftime('%B %d, %Y at %H:%M:%S PST')}")
             print("-" * 60)
             
             # Setup and run scraper
