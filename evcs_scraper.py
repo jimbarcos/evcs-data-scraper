@@ -497,7 +497,7 @@ class EVCSScraper:
                 if os.path.exists(file_path):
                     size = os.path.getsize(file_path)
                     total_size += size
-                    file_info.append(f"• {os.path.basename(file_path)} ({size:,} bytes)")
+                    file_info.append(f"{os.path.basename(file_path)} ({size:,} bytes)")
             
             print(f"📊 Total files: {len(file_info)}")
             print(f"📊 Total size: {total_size:,} bytes")
@@ -508,7 +508,7 @@ class EVCSScraper:
                 html_content = f"""
                 <html>
                 <body>
-                    <h2>🚗⚡ EVCS Data Scraping Completed Successfully</h2>
+                    <h2>EVCS Data Scraping Completed Successfully</h2>
                     <p><strong>Execution Time:</strong> {timestamp}</p>
                     <p><strong>Results:</strong></p>
                     <ul>
@@ -532,6 +532,7 @@ class EVCSScraper:
                         <li>Click the "Download Artifacts" button above</li>
                         <li>Look for the "evcs-data" artifact in the GitHub Actions page</li>
                         <li>Download the ZIP file containing all generated files</li>
+                        <li>Log in to a GitHub account if the Download button can't be found</li>
                     </ol>
                     
                     {"<p><strong>Warnings:</strong></p><ul>" + ''.join([f"<li>{error}</li>" for error in self.error_log]) + "</ul>" if self.error_log else ""}
